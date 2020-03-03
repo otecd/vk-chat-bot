@@ -1,0 +1,60 @@
+{
+  "name": "@noname.team/vk-chat-bot",
+  "version": "0.0.1",
+  "description": "Chat bot for Vk",
+  "main": "build/index.js",
+  "files": [
+    "build"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "webpack --mode production",
+    "lint": "standard",
+    "test": "mocha -r chai/register-expect",
+    "document": "esdoc"
+  },
+  "keywords": [
+    "chat", "bot", "vk"
+  ],
+  "author": "Noname.Team Developers",
+  "contributors": [
+    "Dmitrii Pron <idimzz@gmail.com>"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@neutrinojs/library": "^9.1.0",
+    "@neutrinojs/mocha": "^9.1.0",
+    "chai": "^4.2.0",
+    "core-js": "^3.6.4",
+    "esdoc": "^1.1.0",
+    "esdoc-standard-plugin": "^1.0.0",
+    "mocha": "^7.1.0",
+    "neutrino": "^9.1.0",
+    "standard": "^14.3.1",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.0"
+  },
+  "standard": {
+    "globals": [
+      "describe",
+      "it",
+      "expect",
+      "before",
+      "after"
+    ]
+  },
+  "esdoc": {
+    "source": "./src",
+    "destination": "./docs",
+    "plugins": [
+      {
+        "name": "esdoc-standard-plugin"
+      }
+    ]
+  }
+}
