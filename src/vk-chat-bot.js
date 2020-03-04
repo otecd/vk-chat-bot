@@ -79,14 +79,67 @@ export const prepareSchema = (schema) => {
 }
 
 export default class VkChatBot {
-  constructor (schema = {}) {
+  /**
+   * @param {Object} schema - source schema of vk chat bot.
+   * @param {Object} env - env variables.
+   * @param {number} env.VK_GROUP_ID - vk group connected to this bot
+   * @param {string} env.VK_GROUP_TOKEN - secret token of vk group
+   * @param {?string} [env.VK_API_VERSION] - 5.103 is the latest version
+   * @param {?string} [env.VK_LANG] - should be equal to ru or something
+   * @param {string} env.VK_CHAT_BOT_CONFIRMATION_DATA - unique string from vk chat bot settings which is necessary on confirmation event
+   * @param {string} env.VK_CHAT_BOT_SECRET - secret string of vk chat bot
+   */
+  constructor (schema = {}, env = {}) {
     this.schema = prepareSchema(schema)
+    this.env = env
     this.processCommand = this.processCommand.bind(this)
     this.listen = this.listen.bind(this)
   }
 
-  processCommand (command, stepsHistory) {
-    return {}
+  async processCommand ({
+    command,
+    stepsHistory,
+    data,
+    userId,
+    ycToken
+  }) {
+    const setData = (newData) => fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=${JSON.stringify({ ...data, ...newData })}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+    const resetData = () => fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+    const goToStep = (nextStep) => {
+      const { message = '', commands = [] } = this.schema[nextStep]
+      const buttons = commands.map(group => (group || []).map(commandData => ({
+        action: {
+          type: commandData.type || 'text',
+          payload: JSON.stringify({ command: commandData.name }),
+          label: commandData.label || 'Command'
+        },
+        color: commandData.color || 'secondary'
+      })))
+      const keyboard = buttons && JSON.stringify({ buttons, one_time: !buttons.length })
+      const nextStepsHistory = stepsHistory.concat(nextStep)
+
+      return Promise.all([
+        fetchPost(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=${nextStepsHistory.join(',')}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`),
+        fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${message}&keyboard=${keyboard}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+      ])
+    }
+    const currentStep = stepsHistory.length && stepsHistory[stepsHistory.length - 1]
+    let commandSchema = {}
+
+    if (!currentStep) {
+      return goToStep('initial')
+    }
+
+    currentStep.commands.forEach((group) => {
+      commandSchema = group.find((c) => c.name === command)
+    })
+
+    return commandSchema.handler({
+      data,
+      setData,
+      resetData,
+      goToStep
+    })
   }
 
   async listen (event, ctx) {
@@ -110,19 +163,19 @@ export default class VkChatBot {
             break
           case 'message_new': {
             const messageError = 'Произошла ошибка, повторите предыдущий шаг, пожалуйста'
-            const peerId = requestBody.object.message.peer_id || requestBody.object.message.user_id
+            const userId = requestBody.object.message.peer_id || requestBody.object.message.user_id
             const handleError = async (error) => {
               if (DEBUG) {
-                await fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${peerId}&message=${'error ' + error.message}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
+                await fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${'error ' + error.message}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
               } else {
-                await fetchPost(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=&user_id=${peerId}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
-                await fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${peerId}&message=${messageError}&keyboard=&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
+                await fetchPost(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=&user_id=${userId}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
+                await fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${messageError}&keyboard=&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
               }
             }
             let storageData
 
             try {
-              const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${peerId}&keys=bot_steps_history,bot_data&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
+              const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
               storageData = storageDataResponse.reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
             } catch (error) {
               handleError(error)
@@ -133,23 +186,15 @@ export default class VkChatBot {
               .filter(s => s)
             const data = storageData.bot_data ? JSON.parse(storageData.bot_data) : {}
             const payload = requestBody.object.message.payload ? JSON.parse(requestBody.object.message.payload) : {}
-            const command = payload.command || requestBody.object.message.text
-            const { message, buttons, nextStep } = this.processCommand(command, stepsHistory)
-            const keyboard = buttons && JSON.stringify({ buttons, one_time: !buttons.length })
-            const nextStepsHistory = stepsHistory.concat(nextStep)
+            const command = payload.command || requestBody.object.message.text || ''
 
-            if (DEBUG) {
-              fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${peerId}&message=${
-                ' stepsHistory ' + JSON.stringify(stepsHistory) +
-                ' payload ' + JSON.stringify(payload) +
-                ' message ' + JSON.stringify(message) +
-                ' buttons ' + JSON.stringify(buttons) +
-                ' keyboard ' + JSON.stringify(keyboard) +
-                ' !buttons.length ' + JSON.stringify(!buttons.length)
-              }&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
-            }
-            fetchPost(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=${nextStepsHistory.join(',')}&user_id=${peerId}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
-            fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${peerId}&message=${message}&keyboard=${keyboard}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
+            await this.processCommand({
+              command,
+              stepsHistory,
+              data,
+              userId,
+              ycToken
+            })
             break
           }
           default:

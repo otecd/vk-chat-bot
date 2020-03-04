@@ -1,3 +1,18 @@
+const getChooseIntervalHandler = (interval) => async ({ setData, goToStep }) => {
+  await setData({ interval })
+
+  return goToStep('choose_period')
+}
+const startReportForming = async ({ setData, goToStep }) => {
+  const totalData = setData({ interval: 'year', period: 'total' })
+
+  await goToStep('start_report_forming')
+  /**
+   * @todo report forming process
+   */
+  return goToStep('inform_about_report')
+}
+
 export default {
   initial: {
     message: 'Здесь можно получить отчет о времени разработки по проектам',
@@ -7,7 +22,11 @@ export default {
           name: 'start',
           label: 'Начать',
           color: 'primary',
-          target: 'choose_interval'
+          handler: async ({ resetData, goToStep }) => {
+            await resetData()
+
+            return goToStep('choose_interval')
+          }
         }
       ]
     ]
@@ -20,19 +39,19 @@ export default {
           name: 'day',
           label: 'День',
           color: 'primary',
-          target: 'choose_period'
+          handler: getChooseIntervalHandler('day')
         },
         {
           name: 'week',
           label: 'Неделя',
           color: 'primary',
-          target: 'choose_period'
+          handler: getChooseIntervalHandler('week')
         },
         {
           name: 'month',
           label: 'Месяц',
           color: 'primary',
-          target: 'choose_period'
+          handler: getChooseIntervalHandler('month')
         }
       ],
       [
@@ -40,13 +59,13 @@ export default {
           name: 'year',
           label: 'Год',
           color: 'secondary',
-          target: 'choose_period'
+          handler: getChooseIntervalHandler('year')
         },
         {
           name: 'total',
           label: 'Полностью',
           color: 'secondary',
-          target: 'start_report_forming'
+          handler: startReportForming
         }
       ]
     ]
@@ -59,13 +78,13 @@ export default {
           name: 'current',
           label: 'Текущий',
           color: 'primary',
-          target: 'start_report_forming'
+          handler: startReportForming
         },
         {
           name: 'previous',
           label: 'Предыдущий',
           color: 'primary',
-          target: 'start_report_forming'
+          handler: startReportForming
         },
         'system_stepback'
       ]
