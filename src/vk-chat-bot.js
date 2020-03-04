@@ -5,15 +5,6 @@ const fetchPost = async (url, options) => {
 
   return res.json()
 }
-const {
-  VK_GROUP_ID,
-  VK_GROUP_TOKEN,
-  VK_API_VERSION = '5.103',
-  VK_LANG = 'ru',
-  VK_CHAT_BOT_CONFIRMATION_DATA,
-  VK_CHAT_BOT_SECRET,
-  DEBUG
-} = process.env
 
 export const prepareSchema = (schema) => {
   const system = {
@@ -154,33 +145,17 @@ export default class VkChatBot {
     if (event.httpMethod === 'POST' && event.body) {
       const requestBody = JSON.parse(event.body)
 
-      if (requestBody.secret === VK_CHAT_BOT_SECRET) {
+      if (requestBody.secret === this.env.VK_CHAT_BOT_SECRET) {
         switch (requestBody.type) {
           case 'confirmation':
-            if (requestBody.group_id && +requestBody.group_id === +VK_GROUP_ID) {
-              response.body = VK_CHAT_BOT_CONFIRMATION_DATA
+            if (requestBody.group_id && +requestBody.group_id === +this.env.VK_GROUP_ID) {
+              response.body = this.env.VK_CHAT_BOT_CONFIRMATION_DATA
             }
             break
           case 'message_new': {
-            const messageError = 'Произошла ошибка, повторите предыдущий шаг, пожалуйста'
             const userId = requestBody.object.message.peer_id || requestBody.object.message.user_id
-            const handleError = async (error) => {
-              if (DEBUG) {
-                await fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${'error ' + error.message}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
-              } else {
-                await fetchPost(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=&user_id=${userId}&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
-                await fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${messageError}&keyboard=&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
-              }
-            }
-            let storageData
-
-            try {
-              const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${VK_GROUP_TOKEN}&v=${VK_API_VERSION}&lang=${VK_LANG}`)
-              storageData = storageDataResponse.reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
-            } catch (error) {
-              handleError(error)
-            }
-
+            const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+            const storageData = storageDataResponse.reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
             const stepsHistory = storageData.bot_steps_history
               .split(',')
               .filter(s => s)
