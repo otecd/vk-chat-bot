@@ -43,7 +43,8 @@ describe('E2E / VkChatBot', function () {
         VK_GROUP_ID: vkGroupId,
         VK_LANG: vkLang
       })
-      const response = await bot.listen({
+
+      await bot.listen({
         httpMethod: 'POST',
         body: JSON.stringify({
           secret: vkChatBotSecret,

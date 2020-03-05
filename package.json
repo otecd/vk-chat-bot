@@ -49,7 +49,9 @@
       "it",
       "expect",
       "before",
-      "after"
+      "after",
+      "beforeEach",
+      "afterEach"
     ]
   },
   "esdoc": {

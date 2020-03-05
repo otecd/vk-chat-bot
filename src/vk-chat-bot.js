@@ -71,6 +71,7 @@ export const prepareSchema = (schema) => {
 
 export default class VkChatBot {
   /**
+   * @constructor
    * @param {Object} schema - source schema of vk chat bot.
    * @param {Object} env - env variables.
    * @param {number} env.VK_GROUP_ID - vk group connected to this bot
