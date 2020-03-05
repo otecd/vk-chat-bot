@@ -1,0 +1,34 @@
+image: node:12
+
+before_script:
+  - npm -v
+  - node -v
+  - npm i -s
+
+stages:
+  - test
+  - publish
+
+lint:
+  stage: test
+  script:
+    - npm run lint
+
+test:
+  stage: test
+  script:
+    - npm test
+
+production:
+  stage: publish
+  when: manual
+  script:
+    - npm run build
+    - touch ".npmrc"
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/errors/.npmrc"
+    - npm publish --access public
+  only:
+    - master
+
+after_script:
+  - rm -rf node_modules package-lock.json .npmrc build
