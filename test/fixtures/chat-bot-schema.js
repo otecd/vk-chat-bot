@@ -1,3 +1,13 @@
+/**
+ * Procedure for a time report calculating
+ * @param {Object} params
+ * @param {string} params.interval - time interval to return
+ * @param {string} params.period - which period to choose
+ * @param {boolean} byEmployees - if true, then return complex report by projects and employees, otherwise just return total hours per projects.
+ */
+const formReport = async (params, byEmployees = false) => {
+  return {}
+}
 const getChooseIntervalHandler = (interval) => async ({ setData, goToStep }) => {
   await setData({ interval })
 
@@ -7,9 +17,8 @@ const startReportForming = async ({ setData, goToStep }) => {
   const totalData = setData({ interval: 'year', period: 'total' })
 
   await goToStep('start_report_forming')
-  /**
-   * @todo report forming process
-   */
+  await formReport(totalData)
+
   return goToStep('inform_about_report')
 }
 
