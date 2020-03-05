@@ -24,6 +24,14 @@
   "contributors": [
     "Dmitrii Pron <idimzz@gmail.com>"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com:noname.team/libraries/vk-chat-bot.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/noname.team/libraries/vk-chat-bot/issues"
+  },
+  "homepage": "https://gitlab.com/noname.team/libraries/vk-chat-bot/-/blob/master/README.md",
   "license": "ISC",
   "devDependencies": {
     "@neutrinojs/library": "^9.1.0",
