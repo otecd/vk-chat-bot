@@ -1,6 +1,6 @@
 import fetch from 'node-fetch'
 
-const fetchPost = async (url, options) => {
+const fetchPost = async (url, options = {}) => {
   const res = await fetch(url, { ...options, method: 'POST' })
 
   return res.json()
@@ -133,7 +133,7 @@ export default class VkChatBot {
     })
   }
 
-  async listen (event, ctx) {
+  async listen (event = {}, ctx = {}) {
     const ycToken = ctx.token
     const response = {
       statusCode: 200,
