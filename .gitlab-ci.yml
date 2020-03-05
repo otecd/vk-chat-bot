@@ -13,11 +13,27 @@ lint:
   stage: test
   script:
     - npm run lint
+  except:
+    - tags
 
 test:
   stage: test
   script:
     - npm test
+  except:
+    - tags
+
+development:
+  stage: publish
+  when: manual
+  script:
+    - npm run build
+    - touch ".npmrc"
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/vk-chat-bot/.npmrc"
+    - npm publish --access public
+  only:
+    - tags
+    - /^v\d\.\d\.\d\-.+\-dev$/
 
 production:
   stage: publish
@@ -25,9 +41,10 @@ production:
   script:
     - npm run build
     - touch ".npmrc"
-    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/errors/.npmrc"
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/vk-chat-bot/.npmrc"
     - npm publish --access public
   only:
+    - tags
     - master
 
 after_script:
