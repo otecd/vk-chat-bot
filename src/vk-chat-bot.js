@@ -1,9 +1,9 @@
-import fetch from 'node-fetch'
+import { request } from '@noname.team/helpers/for/server'
 
 const fetchPost = async (url, options = {}) => {
-  const res = await fetch(url, { ...options, method: 'POST' })
+  const res = await request(url, { ...options, method: 'POST' })
 
-  return res.json()
+  return JSON.parse(res)
 }
 
 export const prepareSchema = (schema) => {

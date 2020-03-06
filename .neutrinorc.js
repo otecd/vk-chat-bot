@@ -7,7 +7,7 @@ module.exports = {
       name: 'VkChatBot',
       target: 'node',
       externals: {
-        whitelist: ['node-fetch'],
+        whitelist: ['@noname.team/helpers/for/server'],
       }
     }),
     mocha(),
