@@ -6,6 +6,9 @@ module.exports = {
     library({
       name: 'VkChatBot',
       target: 'node',
+      targets: {
+        node: '12',
+      },
       externals: {
         whitelist: ['@noname.team/helpers/for/server'],
       }
