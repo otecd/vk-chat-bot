@@ -30,13 +30,24 @@ test:
     - if: '$CI_COMMIT_TAG == null'
       when: always
 
-development:
+build:
   stage: publish
   script:
     - npm run build
-    - touch ".npmrc"
-    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/vk-chat-bot/.npmrc"
-    - npm publish --access public
+    - npm pack
+  rules:
+    - if: '$CI_COMMIT_TAG != null'
+      when: always
+  artifacts:
+    paths: [./]
+    expire_in: 2 days
+
+development:
+  stage: publish
+  image: python:latest
+  script:
+    - pip install awscli
+    - aws --endpoint-url=https://storage.yandexcloud.net s3 cp ./ s3://dev-bucket-packages/ --recursive --exclude "*" --include "*.tgz"
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d\.\d\.\d\-dev\-.+$/'
       when: always
@@ -44,7 +55,6 @@ development:
 production:
   stage: publish
   script:
-    - npm run build
     - touch ".npmrc"
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/vk-chat-bot/.npmrc"
     - npm publish --access public
