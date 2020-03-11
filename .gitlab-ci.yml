@@ -3,11 +3,9 @@ workflow:
     - if: $CI_MERGE_REQUEST_ID
     - if: $CI_COMMIT_TAG
 
-before_script:
-  - echo $CI_COMMIT_TAG
-
 stages:
   - test
+  - build
   - publish
 
 lint:
@@ -31,7 +29,7 @@ test:
       when: on_success
 
 build:
-  stage: publish
+  stage: build
   image: node:12
   script:
     - npm i -s
@@ -61,11 +59,8 @@ production:
   script:
     - npm i -s
     - touch ".npmrc"
-    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/vk-chat-bot/.npmrc"
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ".npmrc"
     - npm publish --access public
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d\.\d\.\d$/'
       when: manual
-
-after_script:
-  - rm -rf node_modules package-lock.json .npmrc build
