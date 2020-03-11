@@ -1,5 +1,3 @@
-image: node:12
-
 workflow:
   rules:
     - if: $CI_MERGE_REQUEST_ID
@@ -7,9 +5,6 @@ workflow:
 
 before_script:
   - echo $CI_COMMIT_TAG
-  - npm -v
-  - node -v
-  - npm i -s
 
 stages:
   - test
@@ -17,7 +12,9 @@ stages:
 
 lint:
   stage: test
+  image: node:12
   script:
+    - npm i -s
     - npm run lint
   rules:
     - if: '$CI_COMMIT_TAG == null'
@@ -25,11 +22,13 @@ lint:
 
 test:
   stage: test
+  image: node:12
   script:
+    - npm i -s
     - npm test
   rules:
     - if: '$CI_COMMIT_TAG == null'
-      when: always
+      when: on_success
 
 build:
   stage: publish
@@ -40,7 +39,7 @@ build:
     - mv *.tgz artifacts/
   rules:
     - if: '$CI_COMMIT_TAG != null'
-      when: on_success
+      when: always
   artifacts:
     paths: ['artifacts']
     expire_in: 2 days
