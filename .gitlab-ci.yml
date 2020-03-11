@@ -6,6 +6,7 @@ workflow:
     - if: $CI_COMMIT_TAG
 
 before_script:
+  - echo $CI_COMMIT_TAG
   - npm -v
   - node -v
   - npm i -s
@@ -35,11 +36,13 @@ build:
   script:
     - npm run build
     - npm pack
+    - mkdir artifacts
+    - mv *.tgz artifacts/
   rules:
     - if: '$CI_COMMIT_TAG != null'
-      when: always
+      when: on_success
   artifacts:
-    paths: [./]
+    paths: ['artifacts']
     expire_in: 2 days
 
 development:
@@ -47,10 +50,10 @@ development:
   image: python:latest
   script:
     - pip install awscli
-    - aws --endpoint-url=https://storage.yandexcloud.net s3 cp ./ s3://dev-bucket-packages/ --recursive --exclude "*" --include "*.tgz"
+    - aws --endpoint-url=https://storage.yandexcloud.net s3 cp ./artifacts/ s3://dev-bucket-packages/ --recursive --exclude "*" --include "*.tgz"
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d\.\d\.\d\-dev\-.+$/'
-      when: always
+      when: on_success
 
 production:
   stage: publish
