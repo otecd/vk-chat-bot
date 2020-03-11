@@ -32,7 +32,9 @@ test:
 
 build:
   stage: publish
+  image: node:12
   script:
+    - npm i -s
     - npm run build
     - npm pack
     - mkdir artifacts
@@ -51,12 +53,13 @@ development:
     - pip install awscli
     - aws --endpoint-url=https://storage.yandexcloud.net s3 cp ./artifacts/ s3://dev-bucket-packages/ --recursive --exclude "*" --include "*.tgz"
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^v\d\.\d\.\d\-dev\-.+$/'
+    - if: '$CI_COMMIT_TAG =~ /dev\-.+$/'
       when: on_success
 
 production:
   stage: publish
   script:
+    - npm i -s
     - touch ".npmrc"
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "/builds/noname.team/libraries/vk-chat-bot/.npmrc"
     - npm publish --access public
