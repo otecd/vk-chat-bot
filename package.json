@@ -2,17 +2,18 @@
   "name": "@noname.team/vk-chat-bot",
   "version": "1.0.0-dev-2",
   "description": "Chat bot for Vk",
-  "main": "build/index.js",
+  "main": "index.js",
   "files": [
-    "build"
+    "index.js"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "webpack --mode production",
     "lint": "standard",
     "test": "mocha -r chai/register-expect",
+    "build": "webpack --mode production",
+    "pack:prepare": "npm run build && cp -r ./build/* . && rm -rf ./build",
     "document": "esdoc"
   },
   "keywords": [
@@ -69,6 +70,6 @@
     ]
   },
   "dependencies": {
-    "@noname.team/helpers": "^3.2.0"
+    "@noname.team/helpers": "https://storage.yandexcloud.net/dev-bucket-packages/noname.team-helpers-4.0.0-dev-24.tgz"
   }
 }

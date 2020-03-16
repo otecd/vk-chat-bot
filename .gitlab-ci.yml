@@ -33,7 +33,7 @@ build:
   image: node:12
   script:
     - npm i -s
-    - npm run build
+    - npm run pack:prepare
     - npm pack
     - mkdir artifacts
     - mv *.tgz artifacts/
@@ -58,6 +58,7 @@ production:
   stage: publish
   script:
     - npm i -s
+    - npm run pack:prepare
     - touch ".npmrc"
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ".npmrc"
     - npm publish --access public

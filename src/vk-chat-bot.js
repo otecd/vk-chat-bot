@@ -1,4 +1,4 @@
-import { request } from '@noname.team/helpers/for/server'
+import request from '@noname.team/helpers/server/request'
 
 const fetchPost = async (url, options = {}) => {
   const res = await request(url, { ...options, method: 'POST' })

@@ -9,13 +9,11 @@ describe('Unit / vk-chat-bot', function () {
   this.timeout(6000)
   beforeEach(async () => {
     const module = await rewiremock.module(() => import('../../src/vk-chat-bot'), () => {
-      rewiremock(() => import('@noname.team/helpers/for/server'))
-        .with({
-          request: () => Promise.resolve(JSON.stringify([
-            { key: 'bot_steps_history', value: '' },
-            { key: 'bot_data', value: '' }
-          ]))
-        })
+      rewiremock(() => import('@noname.team/helpers/server/request'))
+        .withDefault(() => Promise.resolve(JSON.stringify([
+          { key: 'bot_steps_history', value: '' },
+          { key: 'bot_data', value: '' }
+        ])))
     })
 
     rewiremock.enable()
