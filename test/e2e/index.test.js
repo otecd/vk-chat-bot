@@ -14,7 +14,7 @@ describe('E2E / VkChatBot', function () {
       { key: 'bot_data', value: '' }
     ]))
 
-    const module = await rewiremock.module(() => import('../../src/vk-chat-bot'), () => {
+    const module = await rewiremock.module(() => import('../../src/index'), () => {
       rewiremock(() => import('@noname.team/helpers/server/request'))
         .withDefault(stubs.nodeFetch)
     })

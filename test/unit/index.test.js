@@ -2,13 +2,13 @@
 import { rewiremock } from '../rewiremock.es6'
 import schema from '../fixtures/chat-bot-schema'
 
-describe('Unit / vk-chat-bot', function () {
+describe('Unit / index', function () {
   let VkChatBot
   let prepareSchema
 
   this.timeout(6000)
   beforeEach(async () => {
-    const module = await rewiremock.module(() => import('../../src/vk-chat-bot'), () => {
+    const module = await rewiremock.module(() => import('../../src/index'), () => {
       rewiremock(() => import('@noname.team/helpers/server/request'))
         .withDefault(() => Promise.resolve(JSON.stringify([
           { key: 'bot_steps_history', value: '' },
