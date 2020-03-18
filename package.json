@@ -70,6 +70,6 @@
     ]
   },
   "dependencies": {
-    "@noname.team/helpers": "https://storage.yandexcloud.net/dev-bucket-packages/noname.team-helpers-4.0.0-dev-24.tgz"
+    "@noname.team/helpers": "^4.0.1"
   }
 }
