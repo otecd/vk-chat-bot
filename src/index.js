@@ -97,7 +97,7 @@ export default class VkChatBot {
   }) {
     const setData = (newData) => fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=${JSON.stringify({ ...data, ...newData })}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
     const resetData = () => fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
-    const goToStep = (nextStep) => {
+    const prepareNextStep = (nextStep, nextStepsHistory) => {
       const { message = '', commands = [] } = this.schema[nextStep]
       const buttons = commands.map(group => (group || []).map(commandData => ({
         action: {
@@ -108,18 +108,49 @@ export default class VkChatBot {
         color: commandData.color || 'secondary'
       })))
       const keyboard = buttons && JSON.stringify({ buttons, one_time: !buttons.length })
-      const nextStepsHistory = stepsHistory.concat(nextStep)
 
       return Promise.all([
         fetchPost(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=${nextStepsHistory.join(',')}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`),
         fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${message}&keyboard=${keyboard}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
       ])
     }
+    const goToStep = (nextStep) => {
+      const nextStepsHistory = stepsHistory.concat(nextStep)
+
+      return prepareNextStep(nextStep, nextStepsHistory)
+    }
+    const goToPreviousStep = (commandToStepBackAmount) => {
+      const nextStepsHistory = stepsHistory.slice(0, 0 - commandToStepBackAmount)
+
+      return prepareNextStep(nextStepsHistory[nextStepsHistory.length - 1], nextStepsHistory)
+    }
+    const goToInitialStep = () => {
+      const nextStepsHistory = stepsHistory.slice(0, 0)
+        .concat('initial')
+
+      return prepareNextStep(nextStepsHistory[nextStepsHistory.length - 1], nextStepsHistory)
+    }
     const currentStep = stepsHistory.length && this.schema[stepsHistory[stepsHistory.length - 1]]
     let commandSchema
 
     if (!currentStep) {
-      return goToStep('initial')
+      return goToInitialStep()
+    }
+
+    if (currentStep === 'system_stepback') {
+      const commandToStepBackAmounts = { yes: 2, no: 1 }
+
+      return goToPreviousStep(commandToStepBackAmounts[command])
+    }
+
+    if (currentStep === 'system_startover') {
+      switch (command) {
+        case 'yes':
+          return goToInitialStep()
+        case 'no':
+        default:
+          return goToPreviousStep(1)
+      }
     }
 
     currentStep.commands.find((group) => {
