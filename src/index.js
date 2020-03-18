@@ -115,7 +115,7 @@ export default class VkChatBot {
         fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${message}&keyboard=${keyboard}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
       ])
     }
-    const currentStep = stepsHistory.length && stepsHistory[stepsHistory.length - 1]
+    const currentStep = stepsHistory.length && this.schema[stepsHistory[stepsHistory.length - 1]]
     let commandSchema = {}
 
     if (!currentStep) {
