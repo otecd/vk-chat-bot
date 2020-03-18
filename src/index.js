@@ -156,7 +156,7 @@ export default class VkChatBot {
           case 'message_new': {
             const userId = requestBody.object.message.peer_id || requestBody.object.message.user_id
             const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
-            const storageData = storageDataResponse.reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
+            const storageData = (storageDataResponse.response || []).reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
             const stepsHistory = storageData.bot_steps_history
               .split(',')
               .filter(s => s)
