@@ -60,7 +60,7 @@ export const prepareSchema = (schema) => {
           if (typeof command === 'string' && command.startsWith('system')) {
             const systemCommand = command.replace('system_', '')
 
-            resultSchema[stepName].commands[i][j] = { ...system.commands[systemCommand], handler: () => `system_${systemCommand}` }
+            resultSchema[stepName].commands[i][j] = { ...system.commands[systemCommand], handler: ({ goToStep }) => goToStep(`system_${systemCommand}`) }
           }
         })
       })
@@ -116,17 +116,23 @@ export default class VkChatBot {
       ])
     }
     const currentStep = stepsHistory.length && this.schema[stepsHistory[stepsHistory.length - 1]]
-    let commandSchema = {}
+    let commandSchema
 
     if (!currentStep) {
       return goToStep('initial')
     }
 
-    currentStep.commands.forEach((group) => {
+    currentStep.commands.find((group) => {
+      if (commandSchema) {
+        return true
+      }
+
       commandSchema = group.find((c) => c.name === command)
+
+      return false
     })
 
-    return commandSchema.handler({
+    return (commandSchema || {}).handler({
       data,
       setData,
       resetData,
