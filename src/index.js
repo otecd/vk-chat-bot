@@ -167,6 +167,7 @@ export default class VkChatBot {
       data,
       setData,
       resetData,
+      ycToken,
       goToStep
     })
   }
