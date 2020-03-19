@@ -130,7 +130,7 @@ export default class VkChatBot {
 
       return prepareNextStep(nextStepsHistory[nextStepsHistory.length - 1], nextStepsHistory)
     }
-    const currentStep = stepsHistory.length && this.schema[stepsHistory[stepsHistory.length - 1]]
+    const currentStep = stepsHistory.length && stepsHistory[stepsHistory.length - 1]
     let commandSchema
 
     if (!currentStep) {
@@ -153,7 +153,7 @@ export default class VkChatBot {
       }
     }
 
-    currentStep.commands.find((group) => {
+    this.schema[currentStep].commands.find((group) => {
       if (commandSchema) {
         return true
       }
