@@ -95,7 +95,17 @@ export default class VkChatBot {
     userId,
     ycToken
   }) {
-    const setData = (newData) => fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=${JSON.stringify({ ...data, ...newData })}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+    const setData = async (oldData, newData) => {
+      const totalData = { ...oldData, ...newData }
+
+      try {
+        await fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=${JSON.stringify(totalData)}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+      } catch (error) {
+        return oldData
+      }
+
+      return totalData
+    }
     const resetData = () => fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
     const prepareNextStep = (nextStep, nextStepsHistory) => {
       const { message = '', commands = [] } = this.schema[nextStep]
