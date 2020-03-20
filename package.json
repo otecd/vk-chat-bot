@@ -1,18 +1,19 @@
 {
   "name": "@noname.team/vk-chat-bot",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Chat bot for Vk",
-  "main": "build/index.js",
+  "main": "index.js",
   "files": [
-    "build"
+    "index.js"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "webpack --mode production",
     "lint": "standard",
     "test": "mocha -r chai/register-expect",
+    "build": "webpack --mode production",
+    "pack:prepare": "npm run build && cp -r ./build/* . && rm -rf ./build",
     "document": "esdoc"
   },
   "keywords": [
@@ -24,6 +25,14 @@
   "contributors": [
     "Dmitrii Pron <idimzz@gmail.com>"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com:noname.team/libraries/vk-chat-bot.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/noname.team/libraries/vk-chat-bot/issues"
+  },
+  "homepage": "https://gitlab.com/noname.team/libraries/vk-chat-bot/-/blob/master/README.md",
   "license": "ISC",
   "devDependencies": {
     "@neutrinojs/library": "^9.1.0",
@@ -39,9 +48,6 @@
     "standard": "^14.3.1",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10"
-  },
-  "dependencies": {
-    "node-fetch": "^2.6.0"
   },
   "standard": {
     "globals": [
@@ -62,5 +68,8 @@
         "name": "esdoc-standard-plugin"
       }
     ]
+  },
+  "dependencies": {
+    "@noname.team/helpers": "^4.0.1"
   }
 }

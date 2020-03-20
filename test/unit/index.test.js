@@ -1,24 +1,21 @@
 /* eslint-disable no-unused-expressions */
-import sinon from 'sinon'
 import { rewiremock } from '../rewiremock.es6'
 import schema from '../fixtures/chat-bot-schema'
 
-describe('Unit / vk-chat-bot', function () {
+describe('Unit / index', function () {
   let VkChatBot
   let prepareSchema
-  let stubs = {}
 
   this.timeout(6000)
   beforeEach(async () => {
-    stubs.nodeFetchJson = sinon.fake.resolves([
-      { key: 'bot_steps_history', value: '' },
-      { key: 'bot_data', value: '' }
-    ])
-    stubs.nodeFetch = sinon.fake.resolves({ json: stubs.nodeFetchJson })
-
-    const module = await rewiremock.module(() => import('../../src/vk-chat-bot'), () => {
-      rewiremock(() => import('node-fetch'))
-        .withDefault(stubs.nodeFetch)
+    const module = await rewiremock.module(() => import('../../src/index'), () => {
+      rewiremock(() => import('@noname.team/helpers/server/request'))
+        .withDefault(() => Promise.resolve(JSON.stringify({
+          response: [
+            { key: 'bot_steps_history', value: '' },
+            { key: 'bot_data', value: '' }
+          ]
+        })))
     })
 
     rewiremock.enable()
@@ -26,7 +23,6 @@ describe('Unit / vk-chat-bot', function () {
     prepareSchema = module.prepareSchema
   })
   afterEach(() => {
-    stubs = {}
     rewiremock.disable()
   })
 

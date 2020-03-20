@@ -9,14 +9,15 @@ describe('E2E / VkChatBot', function () {
 
   this.timeout(6000)
   beforeEach(async () => {
-    stubs.nodeFetchJson = sinon.fake.resolves([
-      { key: 'bot_steps_history', value: '' },
-      { key: 'bot_data', value: '' }
-    ])
-    stubs.nodeFetch = sinon.fake.resolves({ json: stubs.nodeFetchJson })
+    stubs.nodeFetch = sinon.fake.resolves(JSON.stringify({
+      response: [
+        { key: 'bot_steps_history', value: '' },
+        { key: 'bot_data', value: '' }
+      ]
+    }))
 
-    const module = await rewiremock.module(() => import('../../src/vk-chat-bot'), () => {
-      rewiremock(() => import('node-fetch'))
+    const module = await rewiremock.module(() => import('../../src/index'), () => {
+      rewiremock(() => import('@noname.team/helpers/server/request'))
         .withDefault(stubs.nodeFetch)
     })
 
