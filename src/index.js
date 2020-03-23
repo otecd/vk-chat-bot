@@ -92,10 +92,9 @@ export default class VkChatBot {
     command,
     stepsHistory,
     data,
-    userId,
-    ycToken
+    userId
   }) {
-    const setData = async (oldData, newData) => {
+    const setData = async (oldData = {}, newData = {}) => {
       const totalData = { ...oldData, ...newData }
 
       try {
@@ -177,13 +176,11 @@ export default class VkChatBot {
       data,
       setData,
       resetData,
-      ycToken,
       goToStep
     })
   }
 
-  async listen (event = {}, ctx = {}) {
-    const ycToken = ctx.token
+  async listen (event = {}) {
     const response = {
       statusCode: 200,
       headers: { 'Content-Type': 'text/plain' },
@@ -216,8 +213,7 @@ export default class VkChatBot {
               command,
               stepsHistory,
               data,
-              userId,
-              ycToken
+              userId
             })
             break
           }
