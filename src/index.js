@@ -1,10 +1,11 @@
 import request from '@noname.team/helpers/server/request'
 
-const fetchPost = async (url, options = {}) => {
-  const res = await request(url, { ...options, method: 'POST' })
+const fetch = async (url, options = {}) => {
+  const res = await request(url, { ...options })
 
   return JSON.parse(res)
 }
+const fetchPost = (url, options = {}) => fetch(url, { ...options, method: 'POST' })
 
 export const prepareSchema = (schema) => {
   const system = {
@@ -80,22 +81,25 @@ export default class VkChatBot {
    * @param {?string} [env.VK_LANG] - should be equal to ru or something
    * @param {string} env.VK_CHAT_BOT_CONFIRMATION_DATA - unique string from vk chat bot settings which is necessary on confirmation event
    * @param {string} env.VK_CHAT_BOT_SECRET - secret string of vk chat bot
+   * @param {string} env.VK_LONG_POLL_WAIT_TIMEOUT - wait timeout of ling poll request
    */
   constructor (schema = {}, env = {}) {
     this.schema = prepareSchema(schema)
-    this.env = env
-    this.processCommand = this.processCommand.bind(this)
-    this.listen = this.listen.bind(this)
+    this.env = {
+      ...env,
+      VK_GROUP_ID: +env.VK_GROUP_ID,
+      VK_LONG_POLL_WAIT_TIMEOUT: env.VK_LONG_POLL_WAIT_TIMEOUT ? +env.VK_LONG_POLL_WAIT_TIMEOUT : 25
+    }
+    this.longPollConfig = null
   }
 
   async processCommand ({
     command,
     stepsHistory,
     data,
-    userId,
-    ycToken
+    userId
   }) {
-    const setData = async (oldData, newData) => {
+    const setData = async (oldData = {}, newData = {}) => {
       const totalData = { ...oldData, ...newData }
 
       try {
@@ -177,13 +181,45 @@ export default class VkChatBot {
       data,
       setData,
       resetData,
-      ycToken,
       goToStep
     })
   }
 
-  async listen (event = {}, ctx = {}) {
-    const ycToken = ctx.token
+  async updatesHandler ({
+    type,
+    group_id: groupId,
+    object
+  } = {}) {
+    switch (type) {
+      case 'confirmation':
+        return (groupId && +groupId === this.env.VK_GROUP_ID) && this.env.VK_CHAT_BOT_CONFIRMATION_DATA
+      case 'message_new': {
+        const userId = object.message.peer_id || object.message.user_id
+        const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+        const storageData = (storageDataResponse.response || []).reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
+        const stepsHistory = storageData.bot_steps_history
+          .split(',')
+          .filter(s => s)
+        const data = storageData.bot_data ? JSON.parse(storageData.bot_data) : {}
+        const payload = object.message.payload ? JSON.parse(object.message.payload) : {}
+        const command = payload.command || object.message.text || ''
+
+        await this.processCommand({
+          command,
+          stepsHistory,
+          data,
+          userId
+        })
+        break
+      }
+      default:
+        break
+    }
+
+    return 'ok'
+  }
+
+  async listen (event = {}) {
     const response = {
       statusCode: 200,
       headers: { 'Content-Type': 'text/plain' },
@@ -195,35 +231,7 @@ export default class VkChatBot {
       const requestBody = JSON.parse(event.body)
 
       if (requestBody.secret === this.env.VK_CHAT_BOT_SECRET) {
-        switch (requestBody.type) {
-          case 'confirmation':
-            if (requestBody.group_id && +requestBody.group_id === +this.env.VK_GROUP_ID) {
-              response.body = this.env.VK_CHAT_BOT_CONFIRMATION_DATA
-            }
-            break
-          case 'message_new': {
-            const userId = requestBody.object.message.peer_id || requestBody.object.message.user_id
-            const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
-            const storageData = (storageDataResponse.response || []).reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
-            const stepsHistory = storageData.bot_steps_history
-              .split(',')
-              .filter(s => s)
-            const data = storageData.bot_data ? JSON.parse(storageData.bot_data) : {}
-            const payload = requestBody.object.message.payload ? JSON.parse(requestBody.object.message.payload) : {}
-            const command = payload.command || requestBody.object.message.text || ''
-
-            await this.processCommand({
-              command,
-              stepsHistory,
-              data,
-              userId,
-              ycToken
-            })
-            break
-          }
-          default:
-            break
-        }
+        response.body = await this.updatesHandler(requestBody)
 
         return response
       }
@@ -233,6 +241,37 @@ export default class VkChatBot {
       ...response,
       statusCode: 400,
       body: 'error'
+    }
+  }
+
+  async poll () {
+    if (!this.longPollConfig) {
+      await this.initLongPoll()
+    }
+
+    try {
+      const response = await fetch(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`)
+
+      if (response.failed && response.failed > 1) {
+        this.longPollConfig = null
+      } else {
+        this.longPollConfig.ts = response.ts
+        response.updates.forEach(this.updatesHandler)
+      }
+    } catch (error) {
+    }
+
+    return this.poll()
+  }
+
+  async initLongPoll () {
+    const getLongPollServerResponse = await fetchPost(`https://api.vk.com/method/groups.getLongPollServer?group_id=${this.env.VK_GROUP_ID}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}`)
+    const { response, error } = getLongPollServerResponse || {}
+
+    if (response) {
+      this.longPollConfig = response
+    } else {
+      throw new Error(error ? error.error_msg : 'Error is happened while vk long poll server initializing')
     }
   }
 }
