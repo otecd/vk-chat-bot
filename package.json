@@ -1,6 +1,6 @@
 {
   "name": "@noname.team/vk-chat-bot",
-  "version": "1.1.0-dev-4",
+  "version": "1.1.0",
   "description": "Chat bot for Vk",
   "main": "index.js",
   "files": [
