@@ -83,7 +83,11 @@ export default class VkChatBot {
    * @param {string} env.VK_CHAT_BOT_SECRET - secret string of vk chat bot
    * @param {string} env.VK_LONG_POLL_WAIT_TIMEOUT - wait timeout of ling poll request
    */
-  constructor (schema = {}, env = {}) {
+  constructor (
+    schema = {},
+    env = {},
+    botHandler = {}
+  ) {
     this.schema = prepareSchema(schema)
     this.env = {
       ...env,
@@ -91,6 +95,7 @@ export default class VkChatBot {
       VK_LONG_POLL_WAIT_TIMEOUT: env.VK_LONG_POLL_WAIT_TIMEOUT ? +env.VK_LONG_POLL_WAIT_TIMEOUT : 25
     }
     this.longPollConfig = null
+    this.botHandler = botHandler
   }
 
   async processCommand ({
@@ -190,6 +195,13 @@ export default class VkChatBot {
     group_id: groupId,
     object
   } = {}) {
+    if (this.botHandler[type]) {
+      const customTypeCallback = this.botHandler[type]
+
+      await customTypeCallback({ groupId, object })
+
+      return 'ok'
+    }
     switch (type) {
       case 'confirmation':
         return (groupId && +groupId === this.env.VK_GROUP_ID) && this.env.VK_CHAT_BOT_CONFIRMATION_DATA
