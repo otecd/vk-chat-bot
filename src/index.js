@@ -1,11 +1,6 @@
 import request from '@noname.team/helpers/server/request'
 
-const fetch = async (url, options = {}) => {
-  const res = await request(url, { ...options })
-
-  return JSON.parse(res)
-}
-const fetchPost = (url, options = {}) => fetch(url, { ...options, method: 'POST' })
+const fetchPost = (url, options = {}) => request(url, { ...options, method: 'POST' })
 
 export const prepareSchema = (schema) => {
   const system = {
@@ -86,7 +81,7 @@ export default class VkChatBot {
   constructor (
     schema = {},
     env = {},
-    botHandler = {}
+    groupEventHandlers = {}
   ) {
     this.schema = prepareSchema(schema)
     this.env = {
@@ -95,7 +90,7 @@ export default class VkChatBot {
       VK_LONG_POLL_WAIT_TIMEOUT: env.VK_LONG_POLL_WAIT_TIMEOUT ? +env.VK_LONG_POLL_WAIT_TIMEOUT : 25
     }
     this.longPollConfig = null
-    this.botHandler = botHandler
+    this.groupEventHandlers = groupEventHandlers
   }
 
   async processCommand ({
@@ -195,12 +190,8 @@ export default class VkChatBot {
     group_id: groupId,
     object
   } = {}) {
-    if (this.botHandler[type]) {
-      const customTypeCallback = this.botHandler[type]
-
-      await customTypeCallback({ groupId, object })
-
-      return 'ok'
+    if (this.groupEventHandlers[type]) {
+      return this.botHandler[type](object)
     }
     switch (type) {
       case 'confirmation':
@@ -238,15 +229,18 @@ export default class VkChatBot {
       isBase64Encoded: false,
       body: 'ok'
     }
+    try {
+      if (event.httpMethod === 'POST' && event.body) {
+        const requestBody = JSON.parse(event.body)
 
-    if (event.httpMethod === 'POST' && event.body) {
-      const requestBody = JSON.parse(event.body)
+        if (requestBody.secret === this.env.VK_CHAT_BOT_SECRET) {
+          response.body = await this.updatesHandler(requestBody)
 
-      if (requestBody.secret === this.env.VK_CHAT_BOT_SECRET) {
-        response.body = await this.updatesHandler(requestBody)
-
-        return response
+          return response
+        }
       }
+    } catch (error) {
+      return error
     }
 
     return {
@@ -262,7 +256,7 @@ export default class VkChatBot {
     }
 
     try {
-      const response = await fetch(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`)
+      const response = await request(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`)
 
       if (response.failed && response.failed > 1) {
         this.longPollConfig = null
