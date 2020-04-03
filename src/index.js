@@ -96,6 +96,10 @@ export default class VkChatBot {
     }
     this.longPollConfig = null
     this.groupEventHandlers = groupEventHandlers
+    this.processCommand = this.processCommand.bind(this)
+    this.updatesHandler = this.updatesHandler.bind(this)
+    this.listen = this.listen.bind(this)
+    this.poll = this.poll.bind(this)
   }
 
   async processCommand ({
@@ -196,7 +200,7 @@ export default class VkChatBot {
     object
   } = {}) {
     if (this.groupEventHandlers[type]) {
-      return this.botHandler[type](object)
+      return this.groupEventHandlers[type](object)
     }
     switch (type) {
       case 'confirmation':
@@ -234,18 +238,15 @@ export default class VkChatBot {
       isBase64Encoded: false,
       body: 'ok'
     }
-    try {
-      if (event.httpMethod === 'POST' && event.body) {
-        const requestBody = JSON.parse(event.body)
 
-        if (requestBody.secret === this.env.VK_CHAT_BOT_SECRET) {
-          response.body = await this.updatesHandler(requestBody)
+    if (event.httpMethod === 'POST' && event.body) {
+      const requestBody = JSON.parse(event.body)
 
-          return response
-        }
+      if (requestBody.secret === this.env.VK_CHAT_BOT_SECRET) {
+        response.body = await this.updatesHandler(requestBody)
+
+        return response
       }
-    } catch (error) {
-      return error
     }
 
     return {
