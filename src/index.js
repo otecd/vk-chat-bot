@@ -1,11 +1,6 @@
 import request from '@noname.team/helpers/server/request'
 
-const fetch = async (url, options = {}) => {
-  const res = await request(url, { ...options })
-
-  return JSON.parse(res)
-}
-const fetchPost = (url, options = {}) => fetch(url, { ...options, method: 'POST' })
+const fetchPost = (url, options = {}) => request(url, { ...options, method: 'POST' })
 
 export const prepareSchema = (schema) => {
   const system = {
@@ -200,7 +195,7 @@ export default class VkChatBot {
     object
   } = {}) {
     if (this.groupEventHandlers[type]) {
-      return this.groupEventHandlers[type](object)
+      this.groupEventHandlers[type](object)
     }
     switch (type) {
       case 'confirmation':
@@ -262,7 +257,7 @@ export default class VkChatBot {
     }
 
     try {
-      const response = await fetch(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`)
+      const response = await request(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`)
 
       if (response.failed && response.failed > 1) {
         this.longPollConfig = null
