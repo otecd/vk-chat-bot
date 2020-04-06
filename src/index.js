@@ -1,6 +1,6 @@
 import request from '@noname.team/helpers/server/request'
 
-const fetchPost = (url, options = {}) => request(url, { ...options, method: 'POST' })
+const fetchPost = (url, options = {}) => request(url, { ...options, method: 'POST', responseType: 'JSON' })
 
 export const prepareSchema = (schema) => {
   const system = {
@@ -257,7 +257,7 @@ export default class VkChatBot {
     }
 
     try {
-      const response = await request(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`)
+      const response = await request(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`, { responseType: 'JSON' })
 
       if (response.failed && response.failed > 1) {
         this.longPollConfig = null
