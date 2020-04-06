@@ -10,12 +10,12 @@ describe('Unit / index', function () {
   beforeEach(async () => {
     const module = await rewiremock.module(() => import('../../src/index'), () => {
       rewiremock(() => import('@noname.team/helpers/server/request'))
-        .withDefault(() => Promise.resolve(JSON.stringify({
+        .withDefault(() => Promise.resolve({
           response: [
             { key: 'bot_steps_history', value: '' },
             { key: 'bot_data', value: '' }
           ]
-        })))
+        }))
     })
 
     rewiremock.enable()
