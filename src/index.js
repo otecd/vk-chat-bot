@@ -180,8 +180,11 @@ export default class VkChatBot {
 
       return false
     })
+    if (!commandSchema) {
+      return
+    }
 
-    return (commandSchema || {}).handler({
+    return (commandSchema).handler({
       data,
       setData,
       resetData,
@@ -195,7 +198,7 @@ export default class VkChatBot {
     object
   } = {}) {
     if (this.groupEventHandlers[type]) {
-      this.groupEventHandlers[type](object)
+      this.groupEventHandlers[type](object, this.processCommand)
     }
     switch (type) {
       case 'confirmation':
