@@ -1,12 +1,5 @@
 import request from '@noname.team/helpers/server/request'
 
-const fetch = async (url, options = {}) => {
-  const res = await request(url, { ...options })
-
-  return JSON.parse(res)
-}
-const fetchPost = (url, options = {}) => fetch(url, { ...options, method: 'POST' })
-
 export const prepareSchema = (schema) => {
   const system = {
     commands: {
@@ -83,7 +76,11 @@ export default class VkChatBot {
    * @param {string} env.VK_CHAT_BOT_SECRET - secret string of vk chat bot
    * @param {string} env.VK_LONG_POLL_WAIT_TIMEOUT - wait timeout of ling poll request
    */
-  constructor (schema = {}, env = {}) {
+  constructor (
+    schema = {},
+    env = {},
+    groupEventHandlers = {}
+  ) {
     this.schema = prepareSchema(schema)
     this.env = {
       ...env,
@@ -91,6 +88,11 @@ export default class VkChatBot {
       VK_LONG_POLL_WAIT_TIMEOUT: env.VK_LONG_POLL_WAIT_TIMEOUT ? +env.VK_LONG_POLL_WAIT_TIMEOUT : 25
     }
     this.longPollConfig = null
+    this.groupEventHandlers = groupEventHandlers
+    this.processCommand = this.processCommand.bind(this)
+    this.updatesHandler = this.updatesHandler.bind(this)
+    this.listen = this.listen.bind(this)
+    this.poll = this.poll.bind(this)
   }
 
   async processCommand ({
@@ -103,14 +105,14 @@ export default class VkChatBot {
       const totalData = { ...oldData, ...newData }
 
       try {
-        await fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=${JSON.stringify(totalData)}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+        await request(`https://api.vk.com/method/storage.set?key=bot_data&value=${JSON.stringify(totalData)}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`, { method: 'POST' })
       } catch (error) {
         return oldData
       }
 
       return totalData
     }
-    const resetData = () => fetchPost(`https://api.vk.com/method/storage.set?key=bot_data&value=&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+    const resetData = () => request(`https://api.vk.com/method/storage.set?key=bot_data&value=&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`, { method: 'POST', responseType: 'JSON' })
     const prepareNextStep = (nextStep, nextStepsHistory) => {
       const { message = '', commands = [] } = this.schema[nextStep]
       const buttons = commands.map(group => (group || []).map(commandData => ({
@@ -124,8 +126,8 @@ export default class VkChatBot {
       const keyboard = buttons && JSON.stringify({ buttons, one_time: !buttons.length })
 
       return Promise.all([
-        fetchPost(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=${nextStepsHistory.join(',')}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`),
-        fetchPost(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${message}&keyboard=${keyboard}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+        request(`https://api.vk.com/method/storage.set?key=bot_steps_history&value=${nextStepsHistory.join(',')}&user_id=${userId}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`, { method: 'POST' }),
+        request(`https://api.vk.com/method/messages.send?random_id=${Date.now()}&peer_id=${userId}&message=${message}&keyboard=${keyboard}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`, { method: 'POST' })
       ])
     }
     const goToStep = (nextStep) => {
@@ -176,8 +178,11 @@ export default class VkChatBot {
 
       return false
     })
+    if (!commandSchema) {
+      return
+    }
 
-    return (commandSchema || {}).handler({
+    return commandSchema.handler({
       data,
       setData,
       resetData,
@@ -190,12 +195,15 @@ export default class VkChatBot {
     group_id: groupId,
     object
   } = {}) {
+    if (this.groupEventHandlers[type]) {
+      this.groupEventHandlers[type](object, this.processCommand)
+    }
     switch (type) {
       case 'confirmation':
         return (groupId && +groupId === this.env.VK_GROUP_ID) && this.env.VK_CHAT_BOT_CONFIRMATION_DATA
       case 'message_new': {
         const userId = object.message.peer_id || object.message.user_id
-        const storageDataResponse = await fetchPost(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`)
+        const storageDataResponse = await request(`https://api.vk.com/method/storage.get?user_id=${userId}&keys=bot_steps_history,bot_data&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}&lang=${this.env.VK_LANG}`, { method: 'POST', responseType: 'JSON' })
         const storageData = (storageDataResponse.response || []).reduce((r, { key, value }) => ({ ...r, [key]: value }), {})
         const stepsHistory = storageData.bot_steps_history
           .split(',')
@@ -250,7 +258,7 @@ export default class VkChatBot {
     }
 
     try {
-      const response = await fetch(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`)
+      const response = await request(`${this.longPollConfig.server}?act=a_check&key=${this.longPollConfig.key}&ts=${this.longPollConfig.ts}&wait=${this.env.VK_LONG_POLL_WAIT_TIMEOUT}`, { responseType: 'JSON' })
 
       if (response.failed && response.failed > 1) {
         this.longPollConfig = null
@@ -265,7 +273,7 @@ export default class VkChatBot {
   }
 
   async initLongPoll () {
-    const getLongPollServerResponse = await fetchPost(`https://api.vk.com/method/groups.getLongPollServer?group_id=${this.env.VK_GROUP_ID}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}`)
+    const getLongPollServerResponse = await request(`https://api.vk.com/method/groups.getLongPollServer?group_id=${this.env.VK_GROUP_ID}&access_token=${this.env.VK_GROUP_TOKEN}&v=${this.env.VK_API_VERSION}`, { method: 'POST', responseType: 'JSON' })
     const { response, error } = getLongPollServerResponse || {}
 
     if (response) {

@@ -9,12 +9,12 @@ describe('E2E / VkChatBot', function () {
 
   this.timeout(6000)
   beforeEach(async () => {
-    stubs.nodeFetch = sinon.fake.resolves(JSON.stringify({
+    stubs.nodeFetch = sinon.fake.resolves({
       response: [
         { key: 'bot_steps_history', value: '' },
         { key: 'bot_data', value: '' }
       ]
-    }))
+    })
 
     const module = await rewiremock.module(() => import('../../src/index'), () => {
       rewiremock(() => import('@noname.team/helpers/server/request'))

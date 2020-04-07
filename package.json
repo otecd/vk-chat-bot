@@ -1,6 +1,6 @@
 {
   "name": "@noname.team/vk-chat-bot",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Chat bot for Vk",
   "main": "index.js",
   "files": [
@@ -70,6 +70,6 @@
     ]
   },
   "dependencies": {
-    "@noname.team/helpers": "^4.0.1"
+    "@noname.team/helpers": "^4.0.3"
   }
 }
